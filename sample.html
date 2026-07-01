@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B4332">
+<title>JRA Residents</title>
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #F2F4F3;
+  color: #1A1A1A;
+  min-height: 100vh;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOKENS ── */
+:root {
+  --green-dark:  #1B4332;
+  --green-mid:   #2D6A4F;
+  --green-soft:  #52B788;
+  --green-pale:  #D8F3DC;
+  --accent:      #F4A261;   /* warm amber — receipt / CTA contrast */
+  --accent-dark: #E07C32;
+  --red:         #C1121F;
+  --red-pale:    #FFE5E7;
+  --gray-1:      #F2F4F3;
+  --gray-2:      #E4E7E5;
+  --gray-3:      #9CA8A2;
+  --gray-4:      #4A5550;
+  --white:       #FFFFFF;
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --shadow-sm:   0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.12);
+}
+
+/* ── PAGES (SPA) ── */
+.page { display: none; min-height: 100vh; flex-direction: column; }
+.page.active { display: flex; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--green-dark);
+  color: var(--white);
+  padding: 52px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 18px; font-weight: 700; flex: 1; }
+.topbar-sub   { font-size: 12px; opacity: 0.65; margin-top: 1px; }
+.back-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  border: none; color: white;
+  font-size: 20px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+
+/* ── SCROLL BODY ── */
+.scroll-body { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; }
+
+/* ── SEARCH BAR ── */
+.search-wrap { padding: 12px 16px 4px; background: var(--green-dark); }
+.search-inner {
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  display: flex; align-items: center;
+  padding: 0 14px; gap: 8px;
+}
+.search-inner input {
+  flex: 1; border: none; background: transparent;
+  color: white; font-size: 15px; padding: 12px 0;
+  outline: none; font-family: inherit;
+}
+.search-inner input::placeholder { color: rgba(255,255,255,0.55); }
+.search-icon { font-size: 18px; opacity: 0.7; }
+
+/* ── RESIDENT LIST ITEM ── */
+.res-item {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.1s;
+  active-scale: 0.98;
+}
+.res-item:active { transform: scale(0.985); }
+.res-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--green-pale);
+  color: var(--green-dark);
+  font-size: 18px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.res-info { flex: 1; min-width: 0; }
+.res-name { font-size: 16px; font-weight: 700; color: #1A1A1A; }
+.res-jra  { font-size: 13px; color: var(--gray-3); margin-top: 2px; }
+.res-home { font-size: 12px; color: var(--gray-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.res-arrow { color: var(--gray-3); font-size: 20px; }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 28px; right: 20px; z-index: 100;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--accent);
+  color: white; font-size: 28px; font-weight: 300;
+  border: none; box-shadow: 0 4px 20px rgba(244,162,97,0.5);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: transform 0.15s;
+}
+.fab:active { transform: scale(0.92); }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--gray-3);
+  margin: 20px 0 10px;
+}
+.section-label:first-child { margin-top: 0; }
+
+/* ── DETAIL CARDS ── */
+.info-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+.info-row {
+  display: flex; align-items: center;
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--gray-2);
+  gap: 14px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+.info-text { flex: 1; }
+.info-label { font-size: 12px; color: var(--gray-3); font-weight: 600; }
+.info-value { font-size: 15px; font-weight: 600; color: #1A1A1A; margin-top: 1px; }
+.info-value.placeholder { color: var(--gray-3); font-weight: 400; font-style: italic; }
+
+/* ── ACTION BUTTONS ── */
+.action-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 12px;
+}
+.action-row.single { grid-template-columns: 1fr; }
+.btn {
+  padding: 16px; border: none; border-radius: var(--radius-md);
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+  transition: transform 0.1s, opacity 0.1s;
+}
+.btn:active { transform: scale(0.97); opacity: 0.88; }
+.btn-primary { background: var(--green-dark); color: white; }
+.btn-outline  {
+  background: var(--white); color: var(--green-dark);
+  border: 2px solid var(--green-dark);
+}
+.btn-accent   { background: var(--accent); color: white; }
+.btn-wa       { background: #25D366; color: white; }
+.btn-danger   { background: var(--red); color: white; }
+.btn-gray     { background: var(--gray-2); color: var(--gray-4); }
+.btn-full     { width: 100%; }
+.btn-icon     { font-size: 20px; }
+
+/* ── PAYMENT STATUS CARD ── */
+.pay-status-card {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+.pay-status-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-2);
+}
+.pay-status-row:last-child { border-bottom: none; }
+.pay-status-label { font-size: 14px; color: var(--gray-4); font-weight: 500; }
+.pay-status-value { font-size: 15px; font-weight: 700; }
+.tag-paid   { color: #2D6A4F; background: var(--green-pale); padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.tag-unpaid { color: var(--red); background: var(--red-pale); padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.due-amount { color: var(--red); font-size: 22px; font-weight: 800; }
+.due-zero   { color: #2D6A4F; font-size: 22px; font-weight: 800; }
+
+/* ── FORM ELEMENTS ── */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 700; color: var(--gray-4); margin-bottom: 6px; display: block; }
+.form-input, .form-select {
+  width: 100%; padding: 14px 16px;
+  border: 2px solid var(--gray-2);
+  border-radius: var(--radius-md);
+  font-size: 16px; font-family: inherit;
+  background: var(--white); color: #1A1A1A;
+  outline: none;
+  -webkit-appearance: none; appearance: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--green-mid); }
+.form-select-wrap { position: relative; }
+.form-select-wrap::after {
+  content: "▾"; position: absolute; right: 16px; top: 50%;
+  transform: translateY(-50%); pointer-events: none;
+  font-size: 16px; color: var(--gray-3);
+}
+.form-select { padding-right: 40px; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1A1A1A; color: white;
+  padding: 12px 22px; border-radius: 100px;
+  font-size: 14px; font-weight: 600;
+  z-index: 999; opacity: 0;
+  transition: opacity 0.25s, transform 0.25s;
+  white-space: nowrap; max-width: 90vw;
+  text-align: center;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-icon  { font-size: 56px; display: block; margin-bottom: 14px; }
+.empty-title { font-size: 17px; font-weight: 700; color: var(--gray-4); }
+.empty-sub   { font-size: 14px; color: var(--gray-3); margin-top: 6px; }
+
+/* ── MODAL SHEET ── */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 200;
+  align-items: flex-end;
+}
+.modal-bg.open { display: flex; }
+.modal-sheet {
+  background: var(--white); width: 100%;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px 40px;
+  max-height: 90vh; overflow-y: auto;
+  animation: sheetUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle {
+  width: 40px; height: 4px; background: var(--gray-2);
+  border-radius: 2px; margin: 0 auto 20px;
+}
+.sheet-title { font-size: 18px; font-weight: 800; color: var(--green-dark); margin-bottom: 20px; }
+
+/* ── PAID MONTHS CHIPS ── */
+.months-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.month-chip {
+  padding: 6px 14px; border-radius: 20px;
+  background: var(--green-pale); color: var(--green-dark);
+  font-size: 13px; font-weight: 700;
+}
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--gray-2); margin: 16px 0; }
+
+/* ── LOADING ── */
+.spinner {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px;
+}
+.spinner::after {
+  content: '';
+  width: 36px; height: 36px;
+  border: 3px solid var(--gray-2);
+  border-top-color: var(--green-mid);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.count-badge {
+  background: var(--green-pale); color: var(--green-dark);
+  font-size: 12px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+}
+
+/* ── LOGIN PAGE ── */
+#page-login {
+  background: var(--green-dark);
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  width: 100%; max-width: 360px;
+  box-shadow: var(--shadow-md);
+}
+.login-logo { text-align: center; font-size: 44px; margin-bottom: 6px; }
+.login-title { text-align: center; font-size: 20px; font-weight: 800; color: var(--green-dark); }
+.login-sub   { text-align: center; font-size: 13px; color: var(--gray-3); margin-bottom: 24px; }
+.login-error {
+  background: var(--red-pale); color: var(--red);
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  margin-bottom: 14px; display: none; text-align: center;
+}
+.login-error.show { display: block; }
+
+/* ── ADMIN BADGE / EXPORT BAR ── */
+.admin-bar {
+  background: var(--accent);
+  color: white;
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 700;
+}
+.admin-bar button {
+  background: rgba(255,255,255,0.25); color: white;
+  border: none; padding: 8px 14px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.logout-link {
+  font-size: 12px; color: var(--gray-3); text-align: center;
+  margin-top: 18px; text-decoration: underline; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     PAGE 0 — LOGIN
+════════════════════════════════════ -->
+<div id="page-login" class="page active">
+  <div class="login-card">
+    <div class="login-logo">🏘️</div>
+    <div class="login-title">Jyothis Login</div>
+    <div class="login-sub">Jyothis Residents Association</div>
+
+    <div class="login-error" id="login-error">Incorrect username or password</div>
+
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" id="login-user" type="text" placeholder="Enter username" autocapitalize="off" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="login-pass" type="password" placeholder="Enter password">
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="attemptLogin()">Log In</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 1 — RESIDENT LIST
+════════════════════════════════════ -->
+<div id="page-list" class="page">
+  <div id="admin-bar-slot"></div>
+  <div class="topbar" style="flex-direction:column; align-items:flex-start; gap:0; padding-bottom:0">
+    <div style="display:flex;width:100%;align-items:center;justify-content:space-between;padding-bottom:10px">
+      <div>
+        <div class="topbar-title">🏘️ JRA Members</div>
+        <div class="topbar-sub">Jyothis Residents Association</div>
+      </div>
+      <span id="list-count" class="count-badge">—</span>
+    </div>
+    <div class="search-wrap" style="padding:0 0 12px; width:100%">
+      <div class="search-inner">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" placeholder="Search name or JRA number…" oninput="filterResidents()">
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-body" id="list-body">
+    <div class="spinner"></div>
+  </div>
+
+  <button class="fab" onclick="openAddResident()" title="Add Resident">＋</button>
+  <button class="fab" style="right:auto; left:20px; background:var(--gray-2); color:var(--gray-4); width:48px; height:48px; font-size:18px" onclick="logout()" title="Logout">⎋</button>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 2 — RESIDENT DETAIL
+════════════════════════════════════ -->
+<div id="page-detail" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack('page-list')">‹</button>
+    <div>
+      <div class="topbar-title" id="detail-title">Resident</div>
+      <div class="topbar-sub" id="detail-sub"></div>
+    </div>
+  </div>
+
+  <div class="scroll-body" id="detail-body">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PAGE 3 — PAYMENT DETAILS
+════════════════════════════════════ -->
+<div id="page-payment" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack('page-detail')">‹</button>
+    <div>
+      <div class="topbar-title">Payment Details</div>
+      <div class="topbar-sub" id="pay-sub"></div>
+    </div>
+  </div>
+
+  <div class="scroll-body" id="payment-body">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL — ADD / EDIT RESIDENT
+════════════════════════════════════ -->
+<div class="modal-bg" id="modal-resident" onclick="modalBgClick(event)">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="modal-res-title">Add New Resident</div>
+
+    <div class="form-group">
+      <label class="form-label">JRA Number *</label>
+      <input class="form-input" id="f-jra" type="text" placeholder="e.g. JRA-042" inputmode="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Owner Name *</label>
+      <input class="form-input" id="f-name" type="text" placeholder="e.g. Rajan Pillai">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Home Name</label>
+      <input class="form-input" id="f-home" type="text" placeholder="e.g. Sree Nilayam">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <input class="form-input" id="f-phone" type="tel" placeholder="9876543210" inputmode="tel">
+    </div>
+    <div class="form-group">
+      <label class="form-label">WhatsApp Number</label>
+      <input class="form-input" id="f-wa" type="tel" placeholder="9876543210 (if different)" inputmode="tel">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+      <button class="btn btn-gray" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveResident()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+// ══════════════════════════════════════════
+//  AUTH — hardcoded, cosmetic gate only
+// ══════════════════════════════════════════
+const USERS = {
+  "jyothis": { password: "jyothis123", role: "user" },
+  "admin":   { password: "Admin@9876543210", role: "admin" }
+};
+let currentRole = null;
+
+function attemptLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+
+  const match = USERS[u];
+  if (!match || match.password !== p) {
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  currentRole = match.role;
+  sessionStorage.setItem('jra_role', currentRole); // survives refresh, not browser close on some setups — acceptable for cosmetic gate
+  renderAdminBar();
+  showPage('page-list');
+  loadResidents();
+}
+
+function renderAdminBar() {
+  const slot = document.getElementById('admin-bar-slot');
+  if (currentRole === 'admin') {
+    slot.innerHTML = `
+      <div class="admin-bar">
+        <span>👑 Admin Mode</span>
+        <button onclick="exportReport()">📄 Export Report</button>
+      </div>`;
+  } else {
+    slot.innerHTML = '';
+  }
+}
+
+function logout() {
+  currentRole = null;
+  sessionStorage.removeItem('jra_role');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('admin-bar-slot').innerHTML = '';
+  showPage('page-login');
+}
+
+// ══════════════════════════════════════════
+//  ADMIN — EXPORT REPORT AS PDF
+// ══════════════════════════════════════════
+async function exportReport() {
+  showToast('⏳ Building report…');
+  try {
+    const data = await api({ action: "getAllSummary" });
+    if (!data.ok) throw new Error(data.error);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const now = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text("JRA Members - Payment Report", 14, 18);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text("Generated: " + now, 14, 25);
+
+    const headers = [["JRA ID", "Resident Name", "Paid Till", "Pending Till", "Total Paid (Rs)"]];
+    const rows = data.rows.map(r => [
+      r.jra, r.ownerName, r.paidTill || '-', r.pendingTill || 'Up to date', r.totalPaid.toString()
+    ]);
+
+    doc.autoTable({
+      head: headers, body: rows, startY: 32,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [27, 67, 50] }
+    });
+
+    doc.save("JRA_Payment_Report_" + Date.now() + ".pdf");
+    showToast('✅ Report downloaded!');
+  } catch (e) {
+    showToast('❌ ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════
+//  CONFIG — paste your deployed script URL
+// ══════════════════════════════════════════
+const API = "https://script.google.com/macros/s/AKfycbxnrW_uuCI9tANHlmM9YUruQrNrVTOrZxqvDCwwrYZ7eNXW2IqmBaAJko5rpgzIWifH/exec";
+
+const REG_FEE   = 100;
+const MONTHLY   = 50;
+const MONTHS    = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_S  = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ── STATE ──
+let allResidents  = [];
+let currentRes    = null;   // full resident object
+let editMode      = false;  // modal: add vs edit
+let paymentSummary = null;
+
+// ══════════════════════════════════════════
+//  API HELPERS
+// ══════════════════════════════════════════
+async function api(params) {
+  const url = API + "?" + new URLSearchParams(params);
+  const r = await fetch(url);
+  return r.json();
+}
+async function apiPost(body) {
+  const r = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ══════════════════════════════════════════
+//  PAGE NAVIGATION
+// ══════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goBack(pageId) {
+  showPage(pageId);
+  if (pageId === 'page-list') filterResidents();
+}
+
+// ══════════════════════════════════════════
+//  PAGE 1 — LIST
+// ══════════════════════════════════════════
+async function loadResidents() {
+  try {
+    const data = await api({ action: "getResidents" });
+    if (!data.ok) throw new Error(data.error);
+    allResidents = data.residents.sort((a, b) => String(a.jra).localeCompare(String(b.jra), undefined, { numeric: true }));
+    filterResidents();
+  } catch (e) {
+    document.getElementById('list-body').innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">⚠️</span>
+        <div class="empty-title">Could not load residents</div>
+        <div class="empty-sub">${e.message}</div>
+        <button class="btn btn-primary btn-full" style="margin-top:20px" onclick="loadResidents()">Retry</button>
+      </div>`;
+  }
+}
+
+function filterResidents() {
+  const q = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  const filtered = q
+    ? allResidents.filter(r =>
+        r.ownerName.toLowerCase().includes(q) ||
+        String(r.jra).toLowerCase().includes(q) ||
+        (r.homeName || '').toLowerCase().includes(q))
+    : allResidents;
+
+  document.getElementById('list-count').textContent = filtered.length + " members";
+
+  if (!filtered.length) {
+    document.getElementById('list-body').innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">🔍</span>
+        <div class="empty-title">No results</div>
+        <div class="empty-sub">Try a different name or JRA number</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('list-body').innerHTML = filtered.map(r => `
+    <div class="res-item" onclick="openDetail('${r.jra}')">
+      <div class="res-avatar">${initials(r.ownerName)}</div>
+      <div class="res-info">
+        <div class="res-name">${r.ownerName}</div>
+        <div class="res-jra">JRA: ${r.jra}</div>
+        ${r.homeName ? `<div class="res-home">🏠 ${r.homeName}</div>` : ''}
+      </div>
+      <div class="res-arrow">›</div>
+    </div>`).join('');
+}
+
+function initials(name) {
+  return name.trim().split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+}
+
+// ══════════════════════════════════════════
+//  PAGE 2 — DETAIL
+// ══════════════════════════════════════════
+async function openDetail(jra) {
+  showPage('page-detail');
+  document.getElementById('detail-body').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('detail-title').textContent = 'Loading…';
+  document.getElementById('detail-sub').textContent = '';
+
+  try {
+    const data = await api({ action: "getResident", jra });
+    if (!data.ok) throw new Error(data.error);
+    currentRes = data.resident;
+    renderDetail();
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">⚠️</span>
+        <div class="empty-title">Error loading details</div>
+        <div class="empty-sub">${e.message}</div>
+      </div>`;
+  }
+}
+
+function renderDetail() {
+  const r = currentRes;
+  document.getElementById('detail-title').textContent = r.OwnerName;
+  document.getElementById('detail-sub').textContent   = `JRA: ${r.JRA}`;
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="section-label">Resident Info</div>
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-icon">🪪</div>
+        <div class="info-text">
+          <div class="info-label">JRA Number</div>
+          <div class="info-value">${r.JRA}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">👤</div>
+        <div class="info-text">
+          <div class="info-label">Owner Name</div>
+          <div class="info-value">${r.OwnerName}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">🏠</div>
+        <div class="info-text">
+          <div class="info-label">Home Name</div>
+          <div class="info-value ${!r.HomeName ? 'placeholder' : ''}">${r.HomeName || 'Not provided'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">📞</div>
+        <div class="info-text">
+          <div class="info-label">Phone</div>
+          <div class="info-value ${!r.OwnerPhone ? 'placeholder' : ''}">${r.OwnerPhone || 'Not provided'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">💬</div>
+        <div class="info-text">
+          <div class="info-label">WhatsApp</div>
+          <div class="info-value ${!r.WhatsApp ? 'placeholder' : ''}">${r.WhatsApp || r.OwnerPhone || 'Not provided'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Actions</div>
+    <div class="action-row">
+      <button class="btn btn-outline" onclick="openEditResident()">
+        <span class="btn-icon">✏️</span> Edit Details
+      </button>
+      <button class="btn btn-primary" onclick="openPayment('${r.JRA}')">
+        <span class="btn-icon">💰</span> Payments
+      </button>
+    </div>
+    ${(r.OwnerPhone || r.WhatsApp) ? `
+    <div class="action-row single">
+      <a href="tel:${r.OwnerPhone || r.WhatsApp}" style="text-decoration:none">
+        <button class="btn btn-gray btn-full">📞 Call ${r.OwnerName.split(' ')[0]}</button>
+      </a>
+    </div>` : ''}
+
+    <button class="btn btn-gray btn-full" style="margin-top:4px" onclick="goBack('page-list')">
+      🏠 Back to Home
+    </button>
+  `;
+}
+
+// ══════════════════════════════════════════
+//  PAGE 3 — PAYMENTS
+// ══════════════════════════════════════════
+async function openPayment(jra) {
+  showPage('page-payment');
+  document.getElementById('pay-sub').textContent = currentRes ? currentRes.OwnerName : jra;
+  document.getElementById('payment-body').innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const data = await api({ action: "getPayments", jra });
+    if (!data.ok) throw new Error(data.error);
+    paymentSummary = data.summary;
+    renderPaymentPage(data.summary, jra);
+  } catch (e) {
+    document.getElementById('payment-body').innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">⚠️</span>
+        <div class="empty-title">Error loading payments</div>
+        <div class="empty-sub">${e.message}</div>
+        <button class="btn btn-primary btn-full" style="margin-top:20px" onclick="openPayment('${jra}')">Retry</button>
+      </div>`;
+  }
+}
+
+function renderPaymentPage(s, jra) {
+  const totalDueColor = s.totalDue > 0 ? 'due-amount' : 'due-zero';
+  const now = new Date();
+  const currentMonthStr = MONTHS_S[now.getMonth()] + ' ' + now.getFullYear();
+
+  // Build month+year options: 6 past + current + next 2 years
+  let monthOpts = '';
+  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+    for (let m = 0; m < 12; m++) {
+      const key = MONTHS_S[m] + ' ' + y;
+      const sel = key === currentMonthStr ? 'selected' : '';
+      monthOpts += `<option value="${key}" ${sel}>${MONTHS[m]} ${y}</option>`;
+    }
+  }
+
+  document.getElementById('payment-body').innerHTML = `
+    <div class="section-label">Payment Status</div>
+    <div class="pay-status-card">
+      <div class="pay-status-row">
+        <span class="pay-status-label">Registration Fee (₹${REG_FEE})</span>
+        <span class="${s.regPaid ? 'tag-paid' : 'tag-unpaid'}">${s.regPaid ? 'Paid ✓' : 'Not Paid'}</span>
+      </div>
+      <div class="pay-status-row">
+        <span class="pay-status-label">Last Paid Month</span>
+        <span class="pay-status-value">${s.lastPaidMonth || '—'}</span>
+      </div>
+      <div class="pay-status-row">
+        <span class="pay-status-label">Current Month</span>
+        <span class="pay-status-value">${currentMonthStr}</span>
+      </div>
+      <div class="pay-status-row">
+        <span class="pay-status-label">Monthly Fee (₹${MONTHLY}/mo)</span>
+        <span class="${s.monthlyDue === 0 ? 'tag-paid' : 'tag-unpaid'}">${s.monthlyDue === 0 ? 'Paid ✓' : 'Not Paid'}</span>
+      </div>
+      <div class="pay-status-row" style="border-top: 2px solid var(--gray-2); margin-top:4px; padding-top:14px">
+        <span class="pay-status-label" style="font-weight:700">Total Due Now</span>
+        <span class="${totalDueColor}">₹${s.totalDue}</span>
+      </div>
+    </div>
+
+    ${s.paidMonths.length ? `
+    <div class="section-label">Months Paid</div>
+    <div class="info-card" style="padding:14px 16px">
+      <div class="months-wrap">
+        ${s.paidMonths.map(m => `<span class="month-chip">${m}</span>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="section-label">Record a Payment</div>
+    <div class="info-card" style="padding:16px">
+      <div class="form-group">
+        <label class="form-label">Payment For</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="pay-type" onchange="updatePayAmount()">
+            <option value="maintenance">Monthly Maintenance (₹${MONTHLY})</option>
+            <option value="registration">Registration Fee (₹${REG_FEE})</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Select Month</label>
+        <div class="form-select-wrap">
+          <select class="form-select" id="pay-month">${monthOpts}</select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Amount (₹)</label>
+        <input class="form-input" id="pay-amount" type="number" value="${MONTHLY}" inputmode="numeric">
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="savePayment('${jra}')">
+      💾 Save Payment
+    </button>
+
+    <div id="receipt-section" style="display:none; margin-top:12px">
+      <button class="btn btn-wa btn-full" id="wa-btn">
+        <span class="btn-icon">📤</span> Send Receipt via WhatsApp
+      </button>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-gray btn-full" onclick="goBack('page-detail')">
+      ← Back to ${currentRes ? currentRes.OwnerName.split(' ')[0] + "'s Details" : 'Resident Details'}
+    </button>
+    <button class="btn btn-gray btn-full" style="margin-top:10px" onclick="goBack('page-list')">
+      🏠 Home
+    </button>
+  `;
+}
+
+function updatePayAmount() {
+  const type = document.getElementById('pay-type').value;
+  document.getElementById('pay-amount').value = type === 'registration' ? REG_FEE : MONTHLY;
+}
+
+async function savePayment(jra) {
+  const type    = document.getElementById('pay-type').value;
+  const month   = document.getElementById('pay-month').value;
+  const amount  = parseFloat(document.getElementById('pay-amount').value);
+
+  if (!month) { showToast('⚠️ Select a month'); return; }
+  if (!amount || amount <= 0) { showToast('⚠️ Enter a valid amount'); return; }
+
+  const btn = document.querySelector('#payment-body .btn-primary');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    const res = await apiPost({
+      action: "addPayment",
+      jra, monthYear: month,
+      amountPaid: amount,
+      note: type
+    });
+    if (!res.ok) throw new Error(res.error);
+
+    showToast('✅ Payment saved!');
+    buildReceiptLink(jra, type, month, amount);
+
+    // Reload summary
+    const data = await api({ action: "getPayments", jra });
+    if (data.ok) { paymentSummary = data.summary; }
+  } catch (e) {
+    showToast('❌ ' + e.message);
+  } finally {
+    btn.textContent = '💾 Save Payment'; btn.disabled = false;
+  }
+}
+
+function buildReceiptLink(jra, type, month, amount) {
+  const r = currentRes || {};
+  const wa = (r.WhatsApp || r.OwnerPhone || '').replace(/\D/g, '');
+  const typeLabel = type === 'registration' ? 'Registration Fee' : `Monthly Maintenance (${month})`;
+
+  const msg =
+    `*JRA Payment Receipt*\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `👤 Name: ${r.OwnerName || jra}\n` +
+    `🪪 JRA No: ${jra}\n` +
+    `🏠 Home: ${r.HomeName || '—'}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `📋 Payment: ${typeLabel}\n` +
+    `💰 Amount: ₹${amount}\n` +
+    `📅 Date: ${new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `✅ Payment recorded by Jyothis Residents Association`;
+
+  const encoded = encodeURIComponent(msg);
+  const waUrl = wa
+    ? `https://wa.me/91${wa}?text=${encoded}`
+    : `https://wa.me/?text=${encoded}`;
+
+  const section = document.getElementById('receipt-section');
+  const waBtn   = document.getElementById('wa-btn');
+  section.style.display = 'block';
+  waBtn.onclick = () => window.open(waUrl, '_blank');
+}
+
+// ══════════════════════════════════════════
+//  ADD / EDIT RESIDENT MODAL
+// ══════════════════════════════════════════
+function openAddResident() {
+  editMode = false;
+  document.getElementById('modal-res-title').textContent = 'Add New Resident';
+  document.getElementById('modal-save-btn').textContent  = 'Add Resident';
+  ['f-jra','f-name','f-home','f-phone','f-wa'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-jra').disabled = false;
+  document.getElementById('modal-resident').classList.add('open');
+  setTimeout(() => document.getElementById('f-jra').focus(), 400);
+}
+
+function openEditResident() {
+  if (!currentRes) return;
+  editMode = true;
+  document.getElementById('modal-res-title').textContent = 'Edit Resident';
+  document.getElementById('modal-save-btn').textContent  = 'Save Changes';
+  document.getElementById('f-jra').value   = currentRes.JRA;
+  document.getElementById('f-name').value  = currentRes.OwnerName || '';
+  document.getElementById('f-home').value  = currentRes.HomeName  || '';
+  document.getElementById('f-phone').value = currentRes.OwnerPhone || '';
+  document.getElementById('f-wa').value    = currentRes.WhatsApp  || '';
+  document.getElementById('f-jra').disabled = true;
+  document.getElementById('modal-resident').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-resident').classList.remove('open');
+}
+
+function modalBgClick(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+
+async function saveResident() {
+  const jra   = document.getElementById('f-jra').value.trim();
+  const name  = document.getElementById('f-name').value.trim();
+  const home  = document.getElementById('f-home').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const wa    = document.getElementById('f-wa').value.trim();
+
+  if (!jra || !name) { showToast('⚠️ JRA number and name are required'); return; }
+
+  const btn = document.getElementById('modal-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+
+  try {
+    let res;
+    if (editMode) {
+      res = await apiPost({ action: "updateResident", jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa });
+    } else {
+      res = await apiPost({ action: "addResident", jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa });
+    }
+    if (!res.ok) throw new Error(res.error);
+
+    closeModal();
+    showToast(editMode ? '✅ Details updated!' : '✅ Resident added!');
+
+    if (editMode && currentRes) {
+      currentRes.OwnerName  = name;
+      currentRes.HomeName   = home;
+      currentRes.OwnerPhone = phone;
+      currentRes.WhatsApp   = wa;
+      renderDetail();
+    }
+
+    // Refresh list in background
+    loadResidents();
+
+  } catch (e) {
+    showToast('❌ ' + e.message);
+  } finally {
+    btn.textContent = editMode ? 'Save Changes' : 'Add Resident';
+    btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+let _toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+(function boot() {
+  const savedRole = sessionStorage.getItem('jra_role');
+  if (savedRole && USERS[savedRole === 'admin' ? 'admin' : 'jyothis']) {
+    currentRole = savedRole;
+    renderAdminBar();
+    showPage('page-list');
+    loadResidents();
+  }
+})();
+
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') attemptLogin();
+});
+</script>
+</body>
+</html>
