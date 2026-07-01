@@ -1026,11 +1026,14 @@ function showToast(msg) {
 // ══════════════════════════════════════════
 (function boot() {
   const savedRole = sessionStorage.getItem('jra_role');
+
   if (savedRole && USERS[savedRole === 'admin' ? 'admin' : 'jyothis']) {
     currentRole = savedRole;
     renderAdminBar();
     showPage('page-list');
     loadResidents();
+  } else {
+    showPage('page-login');
   }
 })();
 
