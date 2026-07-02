@@ -294,7 +294,68 @@ body {
   padding: 3px 10px; border-radius: 20px;
 }
 
-/* ── LOGIN PAGE ── */
+/* ── AVATAR COLORS ── */
+.res-avatar.c0 { background:#D8F3DC; color:#1B4332; }
+.res-avatar.c1 { background:#FDE8D0; color:#7C3D12; }
+.res-avatar.c2 { background:#DBEAFE; color:#1E40AF; }
+.res-avatar.c3 { background:#FCE7F3; color:#9D174D; }
+.res-avatar.c4 { background:#FEF9C3; color:#713F12; }
+.res-avatar.c5 { background:#E0E7FF; color:#3730A3; }
+
+/* ── BLOOD GROUP BADGE ── */
+.blood-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #FEE2E2; color: #991B1B;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 800;
+}
+
+/* ── OWNERSHIP TAG ── */
+.own-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 700;
+}
+.own-tag.owned  { background: #D8F3DC; color: #1B4332; }
+.own-tag.rented { background: #FDE8D0; color: #7C3D12; }
+
+/* ── TENANT SECTION (conditional in modal) ── */
+#tenant-fields { display: none; }
+#tenant-fields.show { display: block; }
+
+/* ── HERO CARD on detail page ── */
+.hero-card {
+  background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%);
+  border-radius: var(--radius-md);
+  padding: 20px 16px;
+  margin-bottom: 16px;
+  color: white;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 4px 20px rgba(27,67,50,0.3);
+}
+.hero-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  font-size: 24px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.hero-name  { font-size: 18px; font-weight: 800; }
+.hero-jra   { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+.hero-tags  { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.hero-tag   {
+  background: rgba(255,255,255,0.2);
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+}
+
+/* ── LIST ITEM IMPROVEMENTS ── */
+.res-item {
+  border-left: 4px solid transparent;
+}
+.res-item.owned-item  { border-left-color: var(--green-soft); }
+.res-item.rented-item { border-left-color: var(--accent); }
+
 #page-login {
   background: var(--green-dark);
   align-items: center; justify-content: center;
@@ -345,7 +406,7 @@ body {
 <div id="page-login" class="page active">
   <div class="login-card">
     <div class="login-logo">🏘️</div>
-    <div class="login-title">Jyothis Login</div>
+    <div class="login-title">JRA Members</div>
     <div class="login-sub">Jyothis Residents Association</div>
 
     <div class="login-error" id="login-error">Incorrect username or password</div>
@@ -371,7 +432,7 @@ body {
   <div class="topbar" style="flex-direction:column; align-items:flex-start; gap:0; padding-bottom:0">
     <div style="display:flex;width:100%;align-items:center;justify-content:space-between;padding-bottom:10px">
       <div>
-        <div class="topbar-title">🏘️ JRA Members</div>
+        <div class="topbar-title">🏘️ JRA Login</div>
         <div class="topbar-sub">Jyothis Residents Association</div>
       </div>
       <span id="list-count" class="count-badge">—</span>
@@ -436,7 +497,7 @@ body {
 
     <div class="form-group">
       <label class="form-label">JRA Number *</label>
-      <input class="form-input" id="f-jra" type="text" placeholder="e.g. JRA-042" inputmode="text">
+      <input class="form-input" id="f-jra" type="text" placeholder="e.g. J-42" inputmode="text">
     </div>
     <div class="form-group">
       <label class="form-label">Owner Name *</label>
@@ -453,6 +514,41 @@ body {
     <div class="form-group">
       <label class="form-label">WhatsApp Number</label>
       <input class="form-input" id="f-wa" type="tel" placeholder="9876543210 (if different)" inputmode="tel">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Blood Group</label>
+      <div class="form-select-wrap">
+        <select class="form-select" id="f-blood">
+          <option value="">-- Select Blood Group --</option>
+          <option value="A+">A+</option>
+          <option value="A-">A-</option>
+          <option value="B+">B+</option>
+          <option value="B-">B-</option>
+          <option value="AB+">AB+</option>
+          <option value="AB-">AB-</option>
+          <option value="O+">O+</option>
+          <option value="O-">O-</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Home Status</label>
+      <div class="form-select-wrap">
+        <select class="form-select" id="f-status" onchange="toggleTenantFields()">
+          <option value="Owned">Owned</option>
+          <option value="Rented">Rented</option>
+        </select>
+      </div>
+    </div>
+    <div id="tenant-fields">
+      <div class="form-group">
+        <label class="form-label">Tenant Name</label>
+        <input class="form-input" id="f-tenant-name" type="text" placeholder="e.g. Suresh Kumar">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tenant Contact</label>
+        <input class="form-input" id="f-tenant-phone" type="tel" placeholder="9876543210" inputmode="tel">
+      </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
@@ -558,7 +654,7 @@ async function exportReport() {
 // ══════════════════════════════════════════
 //  CONFIG — paste your deployed script URL
 // ══════════════════════════════════════════
-const API = "https://script.google.com/macros/s/AKfycbzQekwN029z8et7FRr4JM1UmdfbOEHG012ZYUxCg-0gtW0sETvJ95zC6smAfZbDHE0O/exec";
+const API = "https://script.google.com/macros/s/AKfycbxsNcRGd7Sn89lCbF-0fngEjKELzOEWI-aDtEI64As9ZT51Png5D6lOT5Wdw8QOidmo/exec";
 
 const REG_FEE   = 100;
 const MONTHLY   = 50;
@@ -642,16 +738,20 @@ function filterResidents() {
     return;
   }
 
-  document.getElementById('list-body').innerHTML = filtered.map(r => `
-    <div class="res-item" onclick="openDetail('${r.jra}')">
-      <div class="res-avatar">${initials(r.ownerName)}</div>
+  document.getElementById('list-body').innerHTML = filtered.map(r => {
+    const color = 'c' + (r.ownerName.charCodeAt(0) % 6);
+    const rentClass = (r.homeStatus || '').toLowerCase() === 'rented' ? 'rented-item' : 'owned-item';
+    return `
+    <div class="res-item ${rentClass}" onclick="openDetail('${r.jra}')">
+      <div class="res-avatar ${color}">${initials(r.ownerName)}</div>
       <div class="res-info">
         <div class="res-name">${r.ownerName}</div>
-        <div class="res-jra">JRA: ${r.jra}</div>
-        ${r.homeName ? `<div class="res-home">🏠 ${r.homeName}</div>` : ''}
+        <div class="res-jra">JRA: ${r.jra}${r.bloodGroup ? ' · 🩸' + r.bloodGroup : ''}</div>
+        ${r.homeName ? `<div class="res-home">🏠 ${r.homeName}${(r.homeStatus||'').toLowerCase()==='rented' ? ' · <span style="color:var(--accent);font-weight:700">Rented</span>' : ''}</div>` : ''}
       </div>
       <div class="res-arrow">›</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function initials(name) {
@@ -687,8 +787,23 @@ function renderDetail() {
   document.getElementById('detail-title').textContent = r.OwnerName;
   document.getElementById('detail-sub').textContent   = `JRA: ${r.JRA}`;
 
+  const isRented = (r.HomeStatus || '').toLowerCase() === 'rented';
+  const avatarColor = 'c' + (r.OwnerName.charCodeAt(0) % 6);
+
   document.getElementById('detail-body').innerHTML = `
-    <div class="section-label">Resident Info</div>
+    <div class="hero-card">
+      <div class="hero-avatar ${avatarColor}">${initials(r.OwnerName)}</div>
+      <div>
+        <div class="hero-name">${r.OwnerName}</div>
+        <div class="hero-jra">JRA: ${r.JRA}${r.HomeName ? ' · ' + r.HomeName : ''}</div>
+        <div class="hero-tags">
+          ${r.BloodGroup ? `<span class="hero-tag">🩸 ${r.BloodGroup}</span>` : ''}
+          <span class="hero-tag">${isRented ? '🔑 Rented' : '🏠 Owned'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Contact Info</div>
     <div class="info-card">
       <div class="info-row">
         <div class="info-icon">🪪</div>
@@ -725,7 +840,40 @@ function renderDetail() {
           <div class="info-value ${!r.WhatsApp ? 'placeholder' : ''}">${r.WhatsApp || r.OwnerPhone || 'Not provided'}</div>
         </div>
       </div>
+      <div class="info-row">
+        <div class="info-icon">🩸</div>
+        <div class="info-text">
+          <div class="info-label">Blood Group</div>
+          <div class="info-value">${r.BloodGroup ? `<span class="blood-badge">🩸 ${r.BloodGroup}</span>` : '<span class="placeholder">Not provided</span>'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">${isRented ? '🔑' : '🏡'}</div>
+        <div class="info-text">
+          <div class="info-label">Home Status</div>
+          <div class="info-value"><span class="own-tag ${isRented ? 'rented' : 'owned'}">${isRented ? '🔑 Rented' : '🏡 Owned'}</span></div>
+        </div>
+      </div>
     </div>
+
+    ${isRented ? `
+    <div class="section-label">Tenant Details</div>
+    <div class="info-card">
+      <div class="info-row">
+        <div class="info-icon">👥</div>
+        <div class="info-text">
+          <div class="info-label">Tenant Name</div>
+          <div class="info-value ${!r.TenantName ? 'placeholder' : ''}">${r.TenantName || 'Not provided'}</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-icon">📱</div>
+        <div class="info-text">
+          <div class="info-label">Tenant Contact</div>
+          <div class="info-value ${!r.TenantPhone ? 'placeholder' : ''}">${r.TenantPhone || 'Not provided'}</div>
+        </div>
+      </div>
+    </div>` : ''}
 
     <div class="section-label">Actions</div>
     <div class="action-row">
@@ -740,6 +888,12 @@ function renderDetail() {
     <div class="action-row single">
       <a href="tel:${r.OwnerPhone || r.WhatsApp}" style="text-decoration:none">
         <button class="btn btn-gray btn-full">📞 Call ${r.OwnerName.split(' ')[0]}</button>
+      </a>
+    </div>` : ''}
+    ${isRented && r.TenantPhone ? `
+    <div class="action-row single">
+      <a href="tel:${r.TenantPhone}" style="text-decoration:none">
+        <button class="btn btn-gray btn-full">📞 Call Tenant</button>
       </a>
     </div>` : ''}
 
@@ -934,11 +1088,19 @@ function buildReceiptLink(jra, type, month, amount) {
 // ══════════════════════════════════════════
 //  ADD / EDIT RESIDENT MODAL
 // ══════════════════════════════════════════
+function toggleTenantFields() {
+  const status = document.getElementById('f-status').value;
+  document.getElementById('tenant-fields').classList.toggle('show', status === 'Rented');
+}
+
 function openAddResident() {
   editMode = false;
   document.getElementById('modal-res-title').textContent = 'Add New Resident';
   document.getElementById('modal-save-btn').textContent  = 'Add Resident';
-  ['f-jra','f-name','f-home','f-phone','f-wa'].forEach(id => document.getElementById(id).value = '');
+  ['f-jra','f-name','f-home','f-phone','f-wa','f-tenant-name','f-tenant-phone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-blood').value  = '';
+  document.getElementById('f-status').value = 'Owned';
+  document.getElementById('tenant-fields').classList.remove('show');
   document.getElementById('f-jra').disabled = false;
   document.getElementById('modal-resident').classList.add('open');
   setTimeout(() => document.getElementById('f-jra').focus(), 400);
@@ -949,11 +1111,16 @@ function openEditResident() {
   editMode = true;
   document.getElementById('modal-res-title').textContent = 'Edit Resident';
   document.getElementById('modal-save-btn').textContent  = 'Save Changes';
-  document.getElementById('f-jra').value   = currentRes.JRA;
-  document.getElementById('f-name').value  = currentRes.OwnerName || '';
-  document.getElementById('f-home').value  = currentRes.HomeName  || '';
-  document.getElementById('f-phone').value = currentRes.OwnerPhone || '';
-  document.getElementById('f-wa').value    = currentRes.WhatsApp  || '';
+  document.getElementById('f-jra').value          = currentRes.JRA;
+  document.getElementById('f-name').value         = currentRes.OwnerName  || '';
+  document.getElementById('f-home').value         = currentRes.HomeName   || '';
+  document.getElementById('f-phone').value        = currentRes.OwnerPhone || '';
+  document.getElementById('f-wa').value           = currentRes.WhatsApp   || '';
+  document.getElementById('f-blood').value        = currentRes.BloodGroup || '';
+  document.getElementById('f-status').value       = currentRes.HomeStatus || 'Owned';
+  document.getElementById('f-tenant-name').value  = currentRes.TenantName  || '';
+  document.getElementById('f-tenant-phone').value = currentRes.TenantPhone || '';
+  document.getElementById('tenant-fields').classList.toggle('show', (currentRes.HomeStatus || '') === 'Rented');
   document.getElementById('f-jra').disabled = true;
   document.getElementById('modal-resident').classList.add('open');
 }
@@ -967,23 +1134,29 @@ function modalBgClick(e) {
 }
 
 async function saveResident() {
-  const jra   = document.getElementById('f-jra').value.trim();
-  const name  = document.getElementById('f-name').value.trim();
-  const home  = document.getElementById('f-home').value.trim();
-  const phone = document.getElementById('f-phone').value.trim();
-  const wa    = document.getElementById('f-wa').value.trim();
+  const jra         = document.getElementById('f-jra').value.trim();
+  const name        = document.getElementById('f-name').value.trim();
+  const home        = document.getElementById('f-home').value.trim();
+  const phone       = document.getElementById('f-phone').value.trim();
+  const wa          = document.getElementById('f-wa').value.trim();
+  const blood       = document.getElementById('f-blood').value;
+  const status      = document.getElementById('f-status').value;
+  const tenantName  = document.getElementById('f-tenant-name').value.trim();
+  const tenantPhone = document.getElementById('f-tenant-phone').value.trim();
 
   if (!jra || !name) { showToast('⚠️ JRA number and name are required'); return; }
 
   const btn = document.getElementById('modal-save-btn');
   btn.textContent = 'Saving…'; btn.disabled = true;
 
+  const payload = { jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa, bloodGroup: blood, homeStatus: status, tenantName, tenantPhone };
+
   try {
     let res;
     if (editMode) {
-      res = await apiPost({ action: "updateResident", jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa });
+      res = await apiPost({ action: "updateResident", ...payload });
     } else {
-      res = await apiPost({ action: "addResident", jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa });
+      res = await apiPost({ action: "addResident", ...payload });
     }
     if (!res.ok) throw new Error(res.error);
 
@@ -991,14 +1164,17 @@ async function saveResident() {
     showToast(editMode ? '✅ Details updated!' : '✅ Resident added!');
 
     if (editMode && currentRes) {
-      currentRes.OwnerName  = name;
-      currentRes.HomeName   = home;
-      currentRes.OwnerPhone = phone;
-      currentRes.WhatsApp   = wa;
+      currentRes.OwnerName   = name;
+      currentRes.HomeName    = home;
+      currentRes.OwnerPhone  = phone;
+      currentRes.WhatsApp    = wa;
+      currentRes.BloodGroup  = blood;
+      currentRes.HomeStatus  = status;
+      currentRes.TenantName  = tenantName;
+      currentRes.TenantPhone = tenantPhone;
       renderDetail();
     }
 
-    // Refresh list in background
     loadResidents();
 
   } catch (e) {
@@ -1026,14 +1202,11 @@ function showToast(msg) {
 // ══════════════════════════════════════════
 (function boot() {
   const savedRole = sessionStorage.getItem('jra_role');
-
   if (savedRole && USERS[savedRole === 'admin' ? 'admin' : 'jyothis']) {
     currentRole = savedRole;
     renderAdminBar();
     showPage('page-list');
     loadResidents();
-  } else {
-    showPage('page-login');
   }
 })();
 
