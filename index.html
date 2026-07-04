@@ -1168,7 +1168,7 @@ async function savePayment(jra) {
 
 function buildReceiptLink(jra, payUntil, amount, mode) {
   const r = currentRes || {};
-  const wa = (r.WhatsApp || r.OwnerPhone || '').replace(/\D/g, '');
+  const wa = String(r.WhatsApp || r.OwnerPhone || '').replace(/\D/g, '');
 
   const msg =
     `*JRA Payment Receipt*\n` +
