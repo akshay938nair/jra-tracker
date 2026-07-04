@@ -970,27 +970,22 @@ function fmtMKLong(mk) { return mk ? MONTHS[mk.m] + ' ' + mk.y : '—'; }
 function calcPending(s, upToMonthStr) {
   const upToMK  = monthKey(upToMonthStr);
   if (!upToMK) return 0;
-
   const regDue = s.regPaid ? 0 : REG_FEE;
-
   if (s.lastPaidMonth) {
-    // Count months from month after last paid up to upToMonth
-    const lastMK    = monthKey(s.lastPaidMonth);
+    const lastMK  = monthKey(s.lastPaidMonth);
     if (!lastMK) return 0;
-    const fromIdx   = monthKeyToIndex(lastMK) + 1;
-    const upToIdx   = monthKeyToIndex(upToMK);
-    const months    = Math.max(0, upToIdx - fromIdx + 1);
+    const fromIdx = monthKeyToIndex(lastMK) + 1;
+    const upToIdx = monthKeyToIndex(upToMK);
+    const months  = Math.max(0, upToIdx - fromIdx + 1);
     return regDue + (months * MONTHLY);
   } else if (s.startMonth) {
-    // No payments at all — count from start month
-    const startMK   = monthKey(s.startMonth);
+    const startMK = monthKey(s.startMonth);
     if (!startMK) return regDue;
-    const fromIdx   = monthKeyToIndex(startMK);
-    const upToIdx   = monthKeyToIndex(upToMK);
-    const months    = Math.max(0, upToIdx - fromIdx + 1);
+    const fromIdx = monthKeyToIndex(startMK);
+    const upToIdx = monthKeyToIndex(upToMK);
+    const months  = Math.max(0, upToIdx - fromIdx + 1);
     return regDue + (months * MONTHLY);
   }
-
   return regDue;
 }
 
