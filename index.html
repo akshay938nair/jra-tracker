@@ -975,8 +975,12 @@ function calcPending(s, upToMonthStr) {
   const upToIdx  = monthKeyToIndex(upToMK);
   if (upToIdx < startIdx) return 0;
   const totalMonths = upToIdx - startIdx + 1;
-  const totalDue    = (!s.regPaid ? REG_FEE : 0) + (totalMonths * MONTHLY);
-  return Math.max(0, totalDue - (s.totalPaid || 0));
+  // Only count reg fee if not yet paid
+  const regDue      = s.regPaid ? 0 : REG_FEE;
+  const totalDue    = regDue + (totalMonths * MONTHLY);
+  // Only count maintenance payments toward monthly dues (exclude reg payment)
+  const maintenancePaid = (s.totalPaid || 0) - (s.regPaid ? REG_FEE : 0);
+  return Math.max(0, totalDue - Math.max(0, maintenancePaid));
 }
 
 function renderPaymentPage(s, jra) {
