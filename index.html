@@ -968,19 +968,30 @@ function fmtMK(mk) { return mk ? MONTHS_S[mk.m] + ' ' + mk.y : '—'; }
 function fmtMKLong(mk) { return mk ? MONTHS[mk.m] + ' ' + mk.y : '—'; }
 
 function calcPending(s, upToMonthStr) {
-  const startMK  = monthKey(s.startMonth);
-  const upToMK   = monthKey(upToMonthStr);
-  if (!startMK || !upToMK) return 0;
-  const startIdx = monthKeyToIndex(startMK);
-  const upToIdx  = monthKeyToIndex(upToMK);
-  if (upToIdx < startIdx) return 0;
-  const totalMonths = upToIdx - startIdx + 1;
-  // Only count reg fee if not yet paid
-  const regDue      = s.regPaid ? 0 : REG_FEE;
-  const totalDue    = regDue + (totalMonths * MONTHLY);
-  // Only count maintenance payments toward monthly dues (exclude reg payment)
-  const maintenancePaid = (s.totalPaid || 0) - (s.regPaid ? REG_FEE : 0);
-  return Math.max(0, totalDue - Math.max(0, maintenancePaid));
+  const upToMK  = monthKey(upToMonthStr);
+  if (!upToMK) return 0;
+
+  const regDue = s.regPaid ? 0 : REG_FEE;
+
+  if (s.lastPaidMonth) {
+    // Count months from month after last paid up to upToMonth
+    const lastMK    = monthKey(s.lastPaidMonth);
+    if (!lastMK) return 0;
+    const fromIdx   = monthKeyToIndex(lastMK) + 1;
+    const upToIdx   = monthKeyToIndex(upToMK);
+    const months    = Math.max(0, upToIdx - fromIdx + 1);
+    return regDue + (months * MONTHLY);
+  } else if (s.startMonth) {
+    // No payments at all — count from start month
+    const startMK   = monthKey(s.startMonth);
+    if (!startMK) return regDue;
+    const fromIdx   = monthKeyToIndex(startMK);
+    const upToIdx   = monthKeyToIndex(upToMK);
+    const months    = Math.max(0, upToIdx - fromIdx + 1);
+    return regDue + (months * MONTHLY);
+  }
+
+  return regDue;
 }
 
 function renderPaymentPage(s, jra) {
