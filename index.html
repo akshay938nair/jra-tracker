@@ -407,7 +407,7 @@ body {
   <div class="login-card">
     <div class="login-logo">🏘️</div>
     <div class="login-title">JRA Members</div>
-    <div class="login-sub">Jyothis Residents Association</div>
+    <div class="login-sub">Jalakam Residents Association</div>
 
     <div class="login-error" id="login-error">Incorrect username or password</div>
 
@@ -432,8 +432,8 @@ body {
   <div class="topbar" style="flex-direction:column; align-items:flex-start; gap:0; padding-bottom:0">
     <div style="display:flex;width:100%;align-items:center;justify-content:space-between;padding-bottom:10px">
       <div>
-        <div class="topbar-title">🏘️ JRA Login</div>
-        <div class="topbar-sub">Jyothis Residents Association</div>
+        <div class="topbar-title">🏘️ JRA Members</div>
+        <div class="topbar-sub">Jalakam Residents Association</div>
       </div>
       <span id="list-count" class="count-badge">—</span>
     </div>
@@ -514,6 +514,12 @@ body {
     <div class="form-group">
       <label class="form-label">WhatsApp Number</label>
       <input class="form-input" id="f-wa" type="tel" placeholder="9876543210 (if different)" inputmode="tel">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Start Month (Joining Month) *</label>
+      <div class="form-select-wrap">
+        <select class="form-select" id="f-start-month"></select>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Blood Group</label>
@@ -676,8 +682,11 @@ async function api(params) {
   return r.json();
 }
 async function apiPost(body) {
-  const url = API + "?" + new URLSearchParams(body);
-  const r = await fetch(url);
+  const r = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
   return r.json();
 }
 
@@ -924,78 +933,154 @@ async function openPayment(jra) {
   }
 }
 
-function renderPaymentPage(s, jra) {
-  const totalDueColor = s.totalDue > 0 ? 'due-amount' : 'due-zero';
-  const now = new Date();
-  const currentMonthStr = MONTHS_S[now.getMonth()] + ' ' + now.getFullYear();
+// ── MONTH KEY HELPERS ──
+function monthKey(monthStr) {
+  if (!monthStr) return null;
+  const s = String(monthStr).trim();
 
-  // Build month+year options: 6 past + current + next 2 years
+  // Handle ISO timestamp: "2025-01-01T..." or "2025-01-31T18:30:00.000Z"
+  const isoMatch = s.match(/^(\d{4})-(\d{2})-\d{2}/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1]);
+    const m = parseInt(isoMatch[2]) - 1; // 0-based
+    return { y, m };
+  }
+
+  // Handle "Mon Jun 01 2026 00:00:00 GMT+0530 (India Standard Time)"
+  const dateObjMatch = s.match(/([A-Za-z]{3})\s+(\d{4})/);
+  if (dateObjMatch) {
+    const m = MONTHS_S.indexOf(dateObjMatch[1]);
+    const y = parseInt(dateObjMatch[2]);
+    if (m >= 0 && !isNaN(y)) return { y, m };
+  }
+
+  // Handle normal "Jan 2025"
+  const parts = s.split(' ');
+  if (parts.length >= 2) {
+    const m = MONTHS_S.indexOf(parts[0]);
+    const y = parseInt(parts[parts.length - 1]);
+    if (m >= 0 && !isNaN(y)) return { y, m };
+  }
+
+  return null;
+}
+
+function monthKeyToIndex(mk) { return mk ? mk.y * 12 + mk.m : null; }
+function indexToMonthKey(idx) { return { y: Math.floor(idx/12), m: idx%12 }; }
+function fmtMK(mk) { return mk ? MONTHS_S[mk.m] + ' ' + mk.y : '—'; }
+function fmtMKLong(mk) { return mk ? MONTHS[mk.m] + ' ' + mk.y : '—'; }
+
+function calcPending(s, upToMonthStr) {
+  const startMK  = monthKey(s.startMonth);
+  const upToMK   = monthKey(upToMonthStr);
+  if (!startMK || !upToMK) return 0;
+  const startIdx = monthKeyToIndex(startMK);
+  const upToIdx  = monthKeyToIndex(upToMK);
+  if (upToIdx < startIdx) return 0;
+  const totalMonths = upToIdx - startIdx + 1;
+  const totalDue    = (!s.regPaid ? REG_FEE : 0) + (totalMonths * MONTHLY);
+  return Math.max(0, totalDue - (s.totalPaid || 0));
+}
+
+function renderPaymentPage(s, jra) {
+  const now           = new Date();
+  const currentMK     = { y: now.getFullYear(), m: now.getMonth() };
+  const currentMYStr  = fmtMK(currentMK);
+
+  // Start month from resident record, fallback to current month
+  const startMonth  = (currentRes && currentRes.StartMonth) ? currentRes.StartMonth : currentMYStr;
+  s.startMonth      = startMonth;
+
+  const startMK     = monthKey(startMonth);
+  const startIdx    = monthKeyToIndex(startMK);
+  const currentIdx  = monthKeyToIndex(currentMK);
+
+  // Last paid month index
+  const lastPaidIdx = s.lastPaidMonth ? monthKeyToIndex(monthKey(s.lastPaidMonth)) : null;
+
+  // Last paid — format cleanly
+  const lastPaidDisplay = s.lastPaidMonth ? fmtMK(monthKey(s.lastPaidMonth)) : '—';
+
+  // Start month — format cleanly
+  const startDisplay = s.startMonth ? fmtMK(monthKey(s.startMonth)) : '—';
+
+  // Dropdown starts from month AFTER last paid (or start month if nothing paid)
+  const dropStartIdx = lastPaidIdx !== null ? lastPaidIdx + 1 : startIdx;
+  // Dropdown ends Dec of next year from current
+  const dropEndMK  = { y: now.getFullYear() + 1, m: 11 };
+  const dropEndIdx = monthKeyToIndex(dropEndMK);
+
+  // Current pending (up to current month)
+  const currentPending = calcPending(s, currentMYStr);
+  const pendingColor   = currentPending > 0 ? 'due-amount' : 'due-zero';
+
+  // Build dropdown options
   let monthOpts = '';
-  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
-    for (let m = 0; m < 12; m++) {
-      const key = MONTHS_S[m] + ' ' + y;
-      const sel = key === currentMonthStr ? 'selected' : '';
-      monthOpts += `<option value="${key}" ${sel}>${MONTHS[m]} ${y}</option>`;
-    }
+  for (let idx = dropStartIdx; idx <= dropEndIdx; idx++) {
+    const mk  = indexToMonthKey(idx);
+    const key = fmtMK(mk);
+    monthOpts += `<option value="${key}">${fmtMKLong(mk)}</option>`;
   }
 
   document.getElementById('payment-body').innerHTML = `
-    <div class="section-label">Payment Status</div>
+    <div class="section-label">Payment Summary</div>
     <div class="pay-status-card">
+      <div class="pay-status-row">
+        <span class="pay-status-label">📅 Start Month</span>
+        <span class="pay-status-value">${startDisplay}</span>
+      </div>
       <div class="pay-status-row">
         <span class="pay-status-label">Registration Fee (₹${REG_FEE})</span>
         <span class="${s.regPaid ? 'tag-paid' : 'tag-unpaid'}">${s.regPaid ? 'Paid ✓' : 'Not Paid'}</span>
       </div>
       <div class="pay-status-row">
-        <span class="pay-status-label">Last Paid Month</span>
-        <span class="pay-status-value">${s.lastPaidMonth || '—'}</span>
+        <span class="pay-status-label">Last Paid For</span>
+        <span class="pay-status-value">${lastPaidDisplay}</span>
       </div>
-      <div class="pay-status-row">
-        <span class="pay-status-label">Current Month</span>
-        <span class="pay-status-value">${currentMonthStr}</span>
-      </div>
-      <div class="pay-status-row">
-        <span class="pay-status-label">Monthly Fee (₹${MONTHLY}/mo)</span>
-        <span class="${s.monthlyDue === 0 ? 'tag-paid' : 'tag-unpaid'}">${s.monthlyDue === 0 ? 'Paid ✓' : 'Not Paid'}</span>
-      </div>
-      <div class="pay-status-row" style="border-top: 2px solid var(--gray-2); margin-top:4px; padding-top:14px">
-        <span class="pay-status-label" style="font-weight:700">Total Due Now</span>
-        <span class="${totalDueColor}">₹${s.totalDue}</span>
+      <div class="pay-status-row" style="border-top:2px solid var(--gray-2);margin-top:4px;padding-top:14px">
+        <span class="pay-status-label" style="font-weight:700">Pending Amount (till ${currentMYStr})</span>
+        <span class="${pendingColor}" id="pending-display">₹${currentPending}</span>
       </div>
     </div>
-
-    ${s.paidMonths.length ? `
-    <div class="section-label">Months Paid</div>
-    <div class="info-card" style="padding:14px 16px">
-      <div class="months-wrap">
-        ${s.paidMonths.map(m => `<span class="month-chip">${m}</span>`).join('')}
-      </div>
-    </div>` : ''}
 
     <div class="section-label">Record a Payment</div>
     <div class="info-card" style="padding:16px">
       <div class="form-group">
-        <label class="form-label">Payment For</label>
+        <label class="form-label">Paying Until (Month)</label>
         <div class="form-select-wrap">
-          <select class="form-select" id="pay-type" onchange="updatePayAmount()">
-            <option value="maintenance">Monthly Maintenance (₹${MONTHLY})</option>
-            <option value="registration">Registration Fee (₹${REG_FEE})</option>
+          <select class="form-select" id="pay-month" onchange="onPayMonthChange()">
+            ${monthOpts || '<option value="">No pending months</option>'}
           </select>
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Select Month</label>
+        <label class="form-label">Amount to Pay (₹) <span style="font-size:11px;color:var(--gray-3)" id="pay-amount-hint"></span></label>
+        <input class="form-input" id="pay-amount" type="number" inputmode="numeric" placeholder="Enter amount">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mode of Payment</label>
         <div class="form-select-wrap">
-          <select class="form-select" id="pay-month">${monthOpts}</select>
+          <select class="form-select" id="pay-mode">
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+          </select>
         </div>
       </div>
       <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Amount (₹)</label>
-        <input class="form-input" id="pay-amount" type="number" value="${MONTHLY}" inputmode="numeric">
+        <label class="form-label">Note (optional)</label>
+        <input class="form-input" id="pay-note" type="text" placeholder="e.g. Receipt #123">
       </div>
     </div>
 
-    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="savePayment('${jra}')">
+    <div class="pay-status-card" style="margin-top:4px">
+      <div class="pay-status-row" style="border:none;padding:6px 0">
+        <span class="pay-status-label" style="font-weight:700">Pending After This Payment</span>
+        <span class="due-amount" id="pending-after">₹—</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="savePayment('${jra}')">
       💾 Save Payment
     </button>
 
@@ -1013,19 +1098,34 @@ function renderPaymentPage(s, jra) {
       🏠 Home
     </button>
   `;
+
+  // Trigger initial calculation
+  onPayMonthChange();
 }
 
-function updatePayAmount() {
-  const type = document.getElementById('pay-type').value;
-  document.getElementById('pay-amount').value = type === 'registration' ? REG_FEE : MONTHLY;
+function onPayMonthChange() {
+  const s          = paymentSummary;
+  if (!s) return;
+  const payUntil   = document.getElementById('pay-month')?.value;
+  if (!payUntil) return;
+
+  const pending    = calcPending(s, payUntil);
+  const afterEl    = document.getElementById('pending-after');
+  const hintEl     = document.getElementById('pay-amount-hint');
+  const amountEl   = document.getElementById('pay-amount');
+
+  if (afterEl) afterEl.textContent = '₹' + pending;
+  if (hintEl)  hintEl.textContent  = '(suggested: ₹' + pending + ')';
+  if (amountEl && !amountEl.value) amountEl.value = pending;
 }
 
 async function savePayment(jra) {
-  const type    = document.getElementById('pay-type').value;
-  const month   = document.getElementById('pay-month').value;
-  const amount  = parseFloat(document.getElementById('pay-amount').value);
+  const payUntil = document.getElementById('pay-month')?.value;
+  const amount   = parseFloat(document.getElementById('pay-amount')?.value);
+  const mode     = document.getElementById('pay-mode')?.value || 'Cash';
+  const note     = document.getElementById('pay-note')?.value.trim() || '';
 
-  if (!month) { showToast('⚠️ Select a month'); return; }
+  if (!payUntil) { showToast('⚠️ Select a month'); return; }
   if (!amount || amount <= 0) { showToast('⚠️ Enter a valid amount'); return; }
 
   const btn = document.querySelector('#payment-body .btn-primary');
@@ -1034,18 +1134,24 @@ async function savePayment(jra) {
   try {
     const res = await apiPost({
       action: "addPayment",
-      jra, monthYear: month,
-      amountPaid: amount,
-      note: type
+      jra,
+      monthYear:   payUntil,
+      amountPaid:  amount,
+      modeOfPay:   mode,
+      note:        note || 'maintenance'
     });
     if (!res.ok) throw new Error(res.error);
 
     showToast('✅ Payment saved!');
-    buildReceiptLink(jra, type, month, amount);
+    buildReceiptLink(jra, payUntil, amount, mode);
 
     // Reload summary
     const data = await api({ action: "getPayments", jra });
-    if (data.ok) { paymentSummary = data.summary; }
+    if (data.ok) {
+      paymentSummary = data.summary;
+      paymentSummary.startMonth = (currentRes && currentRes.StartMonth) ? currentRes.StartMonth : payUntil;
+      renderPaymentPage(paymentSummary, jra);
+    }
   } catch (e) {
     showToast('❌ ' + e.message);
   } finally {
@@ -1053,10 +1159,9 @@ async function savePayment(jra) {
   }
 }
 
-function buildReceiptLink(jra, type, month, amount) {
+function buildReceiptLink(jra, payUntil, amount, mode) {
   const r = currentRes || {};
   const wa = (r.WhatsApp || r.OwnerPhone || '').replace(/\D/g, '');
-  const typeLabel = type === 'registration' ? 'Registration Fee' : `Monthly Maintenance (${month})`;
 
   const msg =
     `*JRA Payment Receipt*\n` +
@@ -1065,11 +1170,12 @@ function buildReceiptLink(jra, type, month, amount) {
     `🪪 JRA No: ${jra}\n` +
     `🏠 Home: ${r.HomeName || '—'}\n` +
     `━━━━━━━━━━━━━━━\n` +
-    `📋 Payment: ${typeLabel}\n` +
+    `📋 Paid Until: ${payUntil}\n` +
     `💰 Amount: ₹${amount}\n` +
+    `💳 Mode: ${mode}\n` +
     `📅 Date: ${new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}\n` +
     `━━━━━━━━━━━━━━━\n` +
-    `✅ Payment recorded by Jyothis Residents Association`;
+    `✅ Payment recorded by Jalakam Residents Association`;
 
   const encoded = encodeURIComponent(msg);
   const waUrl = wa
@@ -1090,6 +1196,19 @@ function toggleTenantFields() {
   document.getElementById('tenant-fields').classList.toggle('show', status === 'Rented');
 }
 
+function buildStartMonthOptions(selected) {
+  const now = new Date();
+  let opts = '';
+  for (let y = now.getFullYear() - 5; y <= now.getFullYear() + 1; y++) {
+    for (let m = 0; m < 12; m++) {
+      const key = MONTHS_S[m] + ' ' + y;
+      const sel = key === selected ? 'selected' : '';
+      opts += `<option value="${key}" ${sel}>${MONTHS[m]} ${y}</option>`;
+    }
+  }
+  return opts;
+}
+
 function openAddResident() {
   editMode = false;
   document.getElementById('modal-res-title').textContent = 'Add New Resident';
@@ -1099,6 +1218,9 @@ function openAddResident() {
   document.getElementById('f-status').value = 'Owned';
   document.getElementById('tenant-fields').classList.remove('show');
   document.getElementById('f-jra').disabled = false;
+  const now = new Date();
+  const currentMY = MONTHS_S[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('f-start-month').innerHTML = buildStartMonthOptions(currentMY);
   document.getElementById('modal-resident').classList.add('open');
   setTimeout(() => document.getElementById('f-jra').focus(), 400);
 }
@@ -1109,15 +1231,16 @@ function openEditResident() {
   document.getElementById('modal-res-title').textContent = 'Edit Resident';
   document.getElementById('modal-save-btn').textContent  = 'Save Changes';
   document.getElementById('f-jra').value          = currentRes.JRA;
-  document.getElementById('f-name').value         = currentRes.OwnerName  || '';
-  document.getElementById('f-home').value         = currentRes.HomeName   || '';
-  document.getElementById('f-phone').value        = currentRes.OwnerPhone || '';
-  document.getElementById('f-wa').value           = currentRes.WhatsApp   || '';
-  document.getElementById('f-blood').value        = currentRes.BloodGroup || '';
-  document.getElementById('f-status').value       = currentRes.HomeStatus || 'Owned';
+  document.getElementById('f-name').value         = currentRes.OwnerName   || '';
+  document.getElementById('f-home').value         = currentRes.HomeName    || '';
+  document.getElementById('f-phone').value        = currentRes.OwnerPhone  || '';
+  document.getElementById('f-wa').value           = currentRes.WhatsApp    || '';
+  document.getElementById('f-blood').value        = currentRes.BloodGroup  || '';
+  document.getElementById('f-status').value       = currentRes.HomeStatus  || 'Owned';
   document.getElementById('f-tenant-name').value  = currentRes.TenantName  || '';
   document.getElementById('f-tenant-phone').value = currentRes.TenantPhone || '';
   document.getElementById('tenant-fields').classList.toggle('show', (currentRes.HomeStatus || '') === 'Rented');
+  document.getElementById('f-start-month').innerHTML = buildStartMonthOptions(currentRes.StartMonth || '');
   document.getElementById('f-jra').disabled = true;
   document.getElementById('modal-resident').classList.add('open');
 }
@@ -1140,13 +1263,14 @@ async function saveResident() {
   const status      = document.getElementById('f-status').value;
   const tenantName  = document.getElementById('f-tenant-name').value.trim();
   const tenantPhone = document.getElementById('f-tenant-phone').value.trim();
+  const startMonth  = document.getElementById('f-start-month').value;
 
   if (!jra || !name) { showToast('⚠️ JRA number and name are required'); return; }
 
   const btn = document.getElementById('modal-save-btn');
   btn.textContent = 'Saving…'; btn.disabled = true;
 
-  const payload = { jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa, bloodGroup: blood, homeStatus: status, tenantName, tenantPhone };
+  const payload = { jra, ownerName: name, homeName: home, ownerPhone: phone, whatsapp: wa, bloodGroup: blood, homeStatus: status, tenantName, tenantPhone, startMonth };
 
   try {
     let res;
@@ -1169,6 +1293,7 @@ async function saveResident() {
       currentRes.HomeStatus  = status;
       currentRes.TenantName  = tenantName;
       currentRes.TenantPhone = tenantPhone;
+      currentRes.StartMonth  = startMonth;
       renderDetail();
     }
 
