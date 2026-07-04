@@ -682,11 +682,8 @@ async function api(params) {
   return r.json();
 }
 async function apiPost(body) {
-  const r = await fetch(API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
+  const url = API + "?" + new URLSearchParams(body);
+  const r = await fetch(url);
   return r.json();
 }
 
